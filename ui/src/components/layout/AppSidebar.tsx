@@ -261,10 +261,11 @@ export function AppSidebar() {
           <div className={cn("flex items-center gap-2", isCollapsed && "hidden")}>
             <Link
               href="/"
-              className="notranslate flex items-center gap-2 px-2 text-xl font-bold"
+              className="notranslate flex items-center gap-2 px-2"
               translate="no"
             >
-              Dograh
+              <img src="/logo.png" alt="Vogent" className="h-8 w-auto" />
+              <span className="text-xl font-bold">Vogent</span>
               {versionInfo && (
                 <span
                   className="notranslate text-xs font-normal text-muted-foreground"
