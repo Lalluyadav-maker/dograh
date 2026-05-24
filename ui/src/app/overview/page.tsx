@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 
-import { GitHubStarBadge } from '@/components/layout/GitHubStarBadge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/lib/auth';
@@ -27,7 +26,7 @@ export default function OverviewPage() {
                         <CardDescription className="text-lg mt-2">
                             {isOSSMode ? (
                                 <>
-                                    Open source alternative to Vapi. Help us support the project by giving us a star on GitHub.
+                                    Open source alternative to Vapi.
                                 </>
                             ) : (
                                 "Get started with building voice AI workflows"
@@ -35,11 +34,6 @@ export default function OverviewPage() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        {isOSSMode && (
-                            <div className="mb-6">
-                                <GitHubStarBadge label="Star us on GitHub" showCount source="overview_page" />
-                            </div>
-                        )}
                     </CardContent>
                 </Card>
 
