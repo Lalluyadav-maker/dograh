@@ -459,3 +459,73 @@ async def _execute_webhook_node(
     except Exception as e:
         logger.error(f"Webhook '{webhook_name}' unexpected error: {e}")
         return False
+
+
+async def run_webhook_for_unanswered_call(_ctx, workflow_run_id: int):
+    """Fire webhook nodes for calls that were never answered (no-answer, busy, failed, canceled).
+
+    Skips QA analysis and audio/transcript uploads since the pipeline never ran.
+    Sends the webhook with whatever context is available (call_disposition, call_tags, etc.).
+    """
+    set_current_run_id(workflow_run_id)
+    logger.info(f"[run {workflow_run_id}] Running webhook for unanswered call")
+
+    try:
+        workflow_run, organization_id = await db_client.get_workflow_run_with_context(
+            workflow_run_id
+        )
+
+        if not workflow_run or not workflow_run.workflow:
+            logger.warning(
+                f"[run {workflow_run_id}] Workflow run or workflow not found, skipping unanswered webhook"
+            )
+            return
+
+        if not organization_id:
+            logger.warning(
+                f"[run {workflow_run_id}] No organization found, skipping unanswered webhook"
+            )
+            return
+
+        workflow_definition = workflow_run.definition.workflow_json if workflow_run.definition else None
+        if not workflow_definition:
+            logger.debug(f"[run {workflow_run_id}] No workflow definition, skipping unanswered webhook")
+            return
+
+        webhook_nodes = [n for n in workflow_definition.get("nodes", []) if n.get("type") == "webhook"]
+        if not webhook_nodes:
+            logger.debug(f"[run {workflow_run_id}] No webhook nodes in workflow, skipping")
+            return
+
+        logger.info(f"[run {workflow_run_id}] Found {len(webhook_nodes)} webhook node(s) for unanswered call")
+
+        # Build render context — no recording/transcript URLs since the call never connected
+        render_context = _build_render_context(workflow_run, public_token=None)
+
+        for node in webhook_nodes:
+            node_id = node.get("id", "unknown")
+            try:
+                webhook_node = WebhookRFNode.model_validate(node)
+            except ValidationError as e:
+                logger.warning(
+                    f"[run {workflow_run_id}] Webhook node #{node_id} failed validation, skipping: {e}"
+                )
+                continue
+
+            try:
+                await _execute_webhook_node(
+                    webhook_data=webhook_node.data,
+                    render_context=render_context,
+                    organization_id=organization_id,
+                )
+            except Exception as e:
+                logger.warning(
+                    f"[run {workflow_run_id}] Failed to execute webhook '{webhook_node.data.name}': {e}"
+                )
+
+    except Exception as e:
+        logger.error(
+            f"[run {workflow_run_id}] Error running unanswered call webhook: {e}",
+            exc_info=True,
+        )
+        raise

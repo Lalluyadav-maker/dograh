@@ -18,6 +18,8 @@ from api.services.campaign.campaign_event_publisher import (
     get_campaign_event_publisher,
 )
 from api.services.campaign.circuit_breaker import circuit_breaker
+from api.tasks.arq import enqueue_job
+from api.tasks.function_names import FunctionNames
 
 
 class StatusCallbackRequest(BaseModel):
@@ -207,7 +209,19 @@ async def _process_status_update(workflow_run_id: int, status: StatusCallbackReq
             run_id=workflow_run_id,
             is_completed=True,
             state=WorkflowRunState.COMPLETED.value,
-            gathered_context={"call_tags": call_tags},
+            gathered_context={
+                "call_tags": call_tags,
+                "call_disposition": status.status,
+                "mapped_call_disposition": status.status,
+            },
+        )
+
+        # Fire webhook nodes so integrations receive a payload even when the
+        # lead never answered. The pipeline never ran for these calls so we
+        # use the dedicated lightweight task that skips QA/upload steps.
+        await enqueue_job(
+            FunctionNames.RUN_WEBHOOK_FOR_UNANSWERED_CALL,
+            workflow_run_id,
         )
     elif status.status in ["in-progress", "initiated", "ringing"]:
         # No-op while the call is in flight.
