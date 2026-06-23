@@ -89,6 +89,20 @@ class OrganizationConfigurationKey(Enum):
     LANGFUSE_CREDENTIALS = (
         "LANGFUSE_CREDENTIALS"  # Org-level Langfuse tracing credentials
     )
+    MODEL_CONFIGURATION_V2 = (
+        "MODEL_CONFIGURATION_V2"  # Org-level v2 AI model configuration
+    )
+    ORGANIZATION_PREFERENCES = "ORGANIZATION_PREFERENCES"  # Org-level defaults such as timezone/test call number
+    MODEL_CONFIGURATION_PREFERENCES = "MODEL_CONFIGURATION_PREFERENCES"  # Deprecated; read fallback for old org preferences
+
+
+class UserConfigurationKey(Enum):
+    """Keys for the per-user keyed JSON store (user_configurations)."""
+
+    MODEL_CONFIGURATION = (
+        "MODEL_CONFIGURATION"  # Legacy per-user v1 AI model configuration
+    )
+    ONBOARDING = "ONBOARDING"  # Post-signup onboarding state (gate, tooltips, actions)
 
 
 class WorkflowStatus(Enum):
@@ -160,3 +174,5 @@ class PostHogEvent(str, Enum):
     AGENT_EMBEDDED = "agent_embedded"
     SIGNED_UP = "signed_up"
     SIGNED_IN = "signed_in"
+    ORGANIZATION_CREATED = "organization_created"
+    ORGANIZATION_USER_ASSOCIATED = "organization_user_associated"
